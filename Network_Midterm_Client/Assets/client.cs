@@ -73,10 +73,14 @@ public class Client : MonoBehaviour
 
 		tcpSocket.Blocking = false;
 		connected = true;
+
+		ipInputMenu.SetActive(false);
+		leaveButton.SetActive(true);
     }
 
     void Start()
     {
+		leaveButton.SetActive(false);
         previousPosition = myCube.position;
     }
 
@@ -195,6 +199,9 @@ public class Client : MonoBehaviour
 		tcpSocket.Close();
 		//udpSocket.Shutdown(SocketShutdown.Both);
 		udpSocket.Close();
+
+		leaveButton.SetActive(false);
+		ipInputMenu.SetActive(true);
 	}
 
 	private void OnApplicationQuit() {
