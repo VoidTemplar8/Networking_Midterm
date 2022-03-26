@@ -6,15 +6,10 @@ using System.Net.Sockets;
 
 class Server
 {
-	static IPAddress ip = null;
-
-	static int udpPort = 11112;
-
 	class Player
 	{
 		public Socket tcpSock;
 		public IPEndPoint tcpRemoteEP;
-		public Socket udpSock;
 		public EndPoint udpRemoteEP;
 		public int id;
 
@@ -24,10 +19,7 @@ class Server
 			tcpRemoteEP = (IPEndPoint)tcpSock.RemoteEndPoint;
 			tcpSock.Blocking = false;
 			
-			udpSock = new Socket(ip.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 			udpRemoteEP = new IPEndPoint(tcpRemoteEP.Address, udpPort);
-			udpSock.Bind(udpRemoteEP);
-			udpSock.Blocking = false;
 		}
 
 		public int SendTCP(in byte[] message, int size) {
@@ -38,9 +30,12 @@ class Server
 			return Server.udpServer.SendTo(message, size, SocketFlags.None, udpRemoteEP);
 		}
 	}
-
-	static Socket udpServer;
+	
 	static Socket tcpServer;
+	static Socket udpServer;
+	static IPAddress ip = null;
+
+	static int udpPort = 11112;
 
 	static int playerCount = 0;
 
@@ -66,6 +61,7 @@ class Server
 	}
 
 	static Socket tempHandler = null;
+	static EndPoint remote = new IPEndPoint(IPAddress.Any, 0);
 
 	static bool RunServer() {
 
@@ -74,9 +70,6 @@ class Server
 			tempHandler = tcpServer.Accept();
 			//if it gets past this a player attempted to connect
 			int id = ++playerCount;
-
-			Console.WriteLine("User at " + ((IPEndPoint)tempHandler.RemoteEndPoint).Address
-					+ " joined with id: " + id.ToString());
 
 			//create the join message
 			byte[] message = Encoding.ASCII.GetBytes("JND" + id);
@@ -94,6 +87,10 @@ class Server
 
 			players.Add(new Player(tempHandler, id, udpPort));
 
+			Console.WriteLine("User at " + ((IPEndPoint)tempHandler.RemoteEndPoint).Address
+					+ " joined with id: " + id.ToString() + " and udp port " + udpPort
+					+ " notifying all other users");
+
 			tempHandler = null;
 		}
 		catch (SocketException sock) {
@@ -107,19 +104,20 @@ class Server
 			tempHandler = null;
 		}
 
-		for (int i = 0; i < players.Count; ++i) {
+		for (int i = 0; i < players.Count;) {
 			Player player = players[i];
 
 			//tcp checks
 			try {
 				recv = player.tcpSock.Receive(buffer);
-
-				Console.WriteLine(recv);
 				if (recv >= 3) {
 					string code = Encoding.ASCII.GetString(buffer, 0, 3);
 					Console.WriteLine(code);
 
 					if (code == "MSG") {
+						Console.WriteLine("User at " + ((IPEndPoint)player.udpRemoteEP).Address
+								+ "Sent this message: \"" + Encoding.ASCII.GetString(buffer, 3, recv - 3) + "\"");
+						
 						//if it recieves something, send it to everyone
 						foreach (Player other in players) {
 							other.SendTCP(buffer, recv);
@@ -128,9 +126,9 @@ class Server
 					//leave server
 					else if (code == "LVS") {
 						Console.WriteLine("User at " + ((IPEndPoint)player.udpRemoteEP).Address
-								+ " left with id: " + player.id.ToString());
+								+ " with id: " + player.id.ToString() + "left the app, notifying all other users");
 
-						players.Remove(player);
+						players.RemoveAt(i);
 						//send it to everyone, id should be attached
 						foreach (Player other in players) {
 							other.SendTCP(buffer, recv);
@@ -147,32 +145,34 @@ class Server
 			catch (Exception e) {
 				Console.WriteLine(e.ToString());
 			}
-
-			//udp check
-			try {
-				recv = player.udpSock.Receive(buffer);
-
-				if (recv >= 0) {
-					int[] ID = new int[1];
-					Buffer.BlockCopy(buffer, 0, ID, 0, sizeof(int));
-					Console.WriteLine("udpUpdated for " + ID[0]);
-					//do udp sending, id should be attached
-					foreach (Player other in players) {
-						if (player == other) continue;
-						other.SendUDP(buffer, recv);
-					}
-				}
-			}
-			catch (SocketException sock) {
-				if (sock.SocketErrorCode != SocketError.WouldBlock) {
-					Console.WriteLine(sock.ToString());
-				}
-			}
-			catch (Exception e) {
-				Console.WriteLine(e.ToString());
-			}
-
 			++i;
+		}
+
+		//udp check
+		try {
+			recv = udpServer.ReceiveFrom(buffer, ref remote);
+
+			if (recv >= 0) {
+				//do udp sending, ignore the player it came from
+				foreach (Player other in players) {
+					if (remote == other.udpRemoteEP) {
+						//this player moved
+						Console.WriteLine("user " + other.id + " moved, sent change to all other users");
+						continue;
+					}
+					other.SendUDP(buffer, recv);
+				}
+			}
+
+			remote = new IPEndPoint(IPAddress.Any, 0);
+		}
+		catch (SocketException sock) {
+			if (sock.SocketErrorCode != SocketError.WouldBlock) {
+				Console.WriteLine(sock.ToString());
+			}
+		}
+		catch (Exception e) {
+			Console.WriteLine(e.ToString());
 		}
 
 		return true;
@@ -181,7 +181,6 @@ class Server
 	static void CloseServer() {
 		tcpServer.Shutdown(SocketShutdown.Both);
 		tcpServer.Close();
-		udpServer.Shutdown(SocketShutdown.Both);
 		udpServer.Close();
 	}
 

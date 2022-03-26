@@ -65,9 +65,14 @@ public class Client : MonoBehaviour
 			index = code.IndexOf('\t');
 		}
 
+		//accept from specific port
 		udpRemoteEP = new IPEndPoint(ip, udpPort);
-		udpSocket = new Socket(ip.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+		udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 		udpSocket.Bind(udpRemoteEP);
+
+		//what we'll be sending to
+		udpRemoteEP = new IPEndPoint(ip, 11112);
+
 		udpSocket.Blocking = false;
 
 
@@ -98,13 +103,13 @@ public class Client : MonoBehaviour
 
             udpSocket.SendTo(bytepos, udpRemoteEP);
 
-        	previousPosition = myCube.transform.position;
+        	previousPosition = myCube.position;
         }
 
 		//listen for other stuff
 		//first tcp
 		try {
-			recv = tcpSocket.ReceiveFrom(outBuffer, ref tcpRemoteEP);
+			recv = tcpSocket.Receive(outBuffer);
 
 			if (recv >= 3) {
 				//get the code first
@@ -139,8 +144,8 @@ public class Client : MonoBehaviour
 		//udp check after that
 		try {
 			recv = udpSocket.ReceiveFrom(outBuffer, ref udpRemoteEP);
-
-			if (recv < 0)	return;
+			
+			if (recv <= 0)	return;
 
 			//get the id first
 			Buffer.BlockCopy(outBuffer, 0, intArr, 0, sizeof(int));
@@ -175,6 +180,7 @@ public class Client : MonoBehaviour
 		int index = otherPlayerIds.IndexOf(playerId);
 		if (index >= 0) {
 			otherPlayerIds.RemoveAt(index);
+			Destroy(otherPlayers[index].gameObject);
 			otherPlayers.RemoveAt(index);
 		}
 	}
@@ -202,6 +208,12 @@ public class Client : MonoBehaviour
 
 		leaveButton.SetActive(false);
 		ipInputMenu.SetActive(true);
+		//kill all players
+		foreach (Transform obj in otherPlayers) {
+			Destroy(obj.gameObject);
+		}
+		otherPlayerIds.Clear();
+		otherPlayers.Clear();
 	}
 
 	private void OnApplicationQuit() {
