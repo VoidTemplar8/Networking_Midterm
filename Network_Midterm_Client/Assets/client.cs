@@ -14,8 +14,12 @@ public class Client : MonoBehaviour
     public Transform myCube;
     public GameObject otherCube;
 
+    public GameObject ipInputMenu;
+    public GameObject leaveButton;
+
     private static byte[] outBuffer = new byte[512];
-    private static EndPoint remoteEP;
+    private static EndPoint tcpRemoteEP;
+    private static EndPoint udpRemoteEP;
     private static Socket tcpSocket;
     private static Socket udpSocket;
 
@@ -31,15 +35,21 @@ public class Client : MonoBehaviour
     public void GetIP(UnityEngine.UI.InputField IPinput)
     {
         IPAddress ip = IPAddress.Parse(IPinput.text);
-        remoteEP = new IPEndPoint(ip, 11111);
+		tcpRemoteEP = new IPEndPoint(ip, 11111);
         tcpSocket = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-		tcpSocket.Connect(remoteEP);
+		tcpSocket.Connect(tcpRemoteEP);
 
 		recv = tcpSocket.Receive(outBuffer);
 
 		//if recv is not valid, then we're in trouble
 		string code = Encoding.ASCII.GetString(outBuffer, 0, recv);
+		
+		//get the udp port we'll connect over
 		int index = code.IndexOf('\t');
+		int udpPort = int.Parse(code.Substring(0, index));
+		code = code.Substring(index + 1);
+
+		index = code.IndexOf('\t');
 		id = int.Parse(code.Substring(0, index));
 
 		//store the id inside the bytepos array, shouldnt get overwritten
@@ -54,9 +64,14 @@ public class Client : MonoBehaviour
 			code = code.Substring(index + 1);
 			index = code.IndexOf('\t');
 		}
-		tcpSocket.Blocking = false;
 
-        udpSocket = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+		udpRemoteEP = new IPEndPoint(ip, udpPort);
+		udpSocket = new Socket(ip.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+		udpSocket.Bind(udpRemoteEP);
+		udpSocket.Blocking = false;
+
+
+		tcpSocket.Blocking = false;
 		connected = true;
     }
 
@@ -77,7 +92,7 @@ public class Client : MonoBehaviour
 
             Buffer.BlockCopy(pos, 0, bytepos, sizeof(int), sizeof(float) * 3);
 
-            udpSocket.SendTo(bytepos, remoteEP);
+            udpSocket.SendTo(bytepos, udpRemoteEP);
 
         	previousPosition = myCube.transform.position;
         }
@@ -85,14 +100,15 @@ public class Client : MonoBehaviour
 		//listen for other stuff
 		//first tcp
 		try {
-			recv = tcpSocket.ReceiveFrom(outBuffer, ref remoteEP);
+			recv = tcpSocket.ReceiveFrom(outBuffer, ref tcpRemoteEP);
 
 			if (recv >= 3) {
 				//get the code first
 				string code = Encoding.ASCII.GetString(outBuffer, 0, 3);
+				Debug.Log(code);
 
 				//new player joined, we can deal with this later
-				if (code == "JNS") {
+				if (code == "JND") {
 					//get their id
 					CreateNewPlayer(int.Parse(Encoding.ASCII.GetString(outBuffer, 3, recv - 3)));
 				}
@@ -117,21 +133,28 @@ public class Client : MonoBehaviour
 		}
 
 		//udp check after that
-		recv = udpSocket.Receive(outBuffer);
+		try {
+			recv = udpSocket.ReceiveFrom(outBuffer, ref udpRemoteEP);
 
-		if (recv < 0)	return;
-		
-		//get the id first
-		Buffer.BlockCopy(outBuffer, 0, intArr, 0, sizeof(int));
-		//then the position
-		Buffer.BlockCopy(outBuffer, sizeof(int), pos, 0, sizeof(float) * 3);
+			if (recv < 0)	return;
 
-		Vector3 newPos = Vector3.zero;
-		newPos.x = pos[0];
-		newPos.y = pos[1];
-		newPos.z = pos[2];
+			//get the id first
+			Buffer.BlockCopy(outBuffer, 0, intArr, 0, sizeof(int));
+			//then the position
+			Buffer.BlockCopy(outBuffer, sizeof(int), pos, 0, sizeof(float) * 3);
 
-		MovePlayer(intArr[0], newPos);
+			Vector3 newPos = Vector3.zero;
+			newPos.x = pos[0];
+			newPos.y = pos[1];
+			newPos.z = pos[2];
+
+			MovePlayer(intArr[0], newPos);
+		}
+		catch (SocketException sock) {
+			if (sock.SocketErrorCode != SocketError.WouldBlock) {
+				Console.WriteLine(sock.ToString());
+			}
+		}
     }
 
 	List<int> otherPlayerIds =  new List<int>();
@@ -160,14 +183,25 @@ public class Client : MonoBehaviour
 		}
 	}
 
-	void OnApplicationQuit() {
+	public void Disconnect() {
 		if (!connected)	return;
 
 		//send leave message
-		tcpSocket.SendTo(Encoding.ASCII.GetBytes("LVS" + id.ToString()), remoteEP);
+		tcpSocket.SendTo(Encoding.ASCII.GetBytes("LVS" + id.ToString()), tcpRemoteEP);
+
+		//close socket and stuff
+		connected = false;
+		tcpSocket.Shutdown(SocketShutdown.Both);
+		tcpSocket.Close();
+		//udpSocket.Shutdown(SocketShutdown.Both);
+		udpSocket.Close();
+	}
+
+	private void OnApplicationQuit() {
+		Disconnect();
 	}
 
 	public static void SendTextChat(string message) {
-		tcpSocket.SendTo(Encoding.ASCII.GetBytes("MSG" + message), remoteEP);
+		tcpSocket.SendTo(Encoding.ASCII.GetBytes("MSG" + message), tcpRemoteEP);
 	}
 }
