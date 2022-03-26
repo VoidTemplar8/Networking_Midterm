@@ -10,7 +10,7 @@ class Server
 	{
 		public Socket tcpSock;
 		public IPEndPoint tcpRemoteEP;
-		public EndPoint udpRemoteEP;
+		public IPEndPoint udpRemoteEP;
 		public int id;
 
 		public Player(Socket handler, int id, int udpPort) {
@@ -62,6 +62,7 @@ class Server
 
 	static Socket tempHandler = null;
 	static EndPoint remote = new IPEndPoint(IPAddress.Any, 0);
+	static IPEndPoint remoteIP = null;
 
 	static bool RunServer() {
 
@@ -133,6 +134,9 @@ class Server
 						foreach (Player other in players) {
 							other.SendTCP(buffer, recv);
 						}
+
+						//close the socket
+						player.tcpSock.Close();
 						continue;
 					}
 				}
@@ -153,15 +157,19 @@ class Server
 			recv = udpServer.ReceiveFrom(buffer, ref remote);
 
 			if (recv >= 0) {
+				//so we dont need to cast every frame
+				remoteIP = (IPEndPoint)remote;
 				//do udp sending, ignore the player it came from
 				foreach (Player other in players) {
-					if (remote == other.udpRemoteEP) {
+					if (remoteIP.Port == other.udpRemoteEP.Port &&
+						remoteIP.Address.GetHashCode() == other.udpRemoteEP.Address.GetHashCode()) {
 						//this player moved
 						Console.WriteLine("user " + other.id + " moved, sent change to all other users");
 						continue;
 					}
 					other.SendUDP(buffer, recv);
 				}
+				remoteIP = null;
 			}
 
 			remote = new IPEndPoint(IPAddress.Any, 0);
