@@ -11,6 +11,7 @@ using System.Net.Sockets;
 public class Client : MonoBehaviour
 {
     public Transform myCube;
+    public GameObject otherCube;
 
     private static byte[] outBuffer = new byte[512];
     private static EndPoint remoteEP;
@@ -100,7 +101,7 @@ public class Client : MonoBehaviour
 				}
 				//a player left
 				else if (code == "LVS") {
-					int id = int.Parse(Encoding.ASCII.GetString(outBuffer, 3, recv - 3));
+					RemovePlayer(int.Parse(Encoding.ASCII.GetString(outBuffer, 3, recv - 3)));
 				}
 			}
 		}
@@ -131,12 +132,30 @@ public class Client : MonoBehaviour
 		MovePlayer(intArr[0], newPos);
     }
 
+	List<int> otherPlayerIds =  new List<int>();
+	List<Transform> otherPlayers =  new List<Transform>();
+
 	void CreateNewPlayer(int playerId) {
-		//does nothign for now
+		//could cehck if the id exists already, but whatevs
+		otherPlayerIds.Add(playerId);
+		otherPlayers.Add(Instantiate(otherCube).transform);
+	}
+
+	void RemovePlayer(int playerId) {
+		//see if it exists, (it really should)
+		int index = otherPlayerIds.IndexOf(playerId);
+		if (index >= 0) {
+			otherPlayerIds.RemoveAt(index);
+			otherPlayers.RemoveAt(index);
+		}
 	}
 
 	void MovePlayer(int playerId, Vector3 newPos) {
-		//does nothing for now
+		//see if it exists (it should)
+		int index = otherPlayerIds.IndexOf(playerId);
+		if (index >= 0) {
+			otherPlayers[index].position = newPos;
+		}
 	}
 
 	void OnApplicationQuit() {
