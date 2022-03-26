@@ -1,18 +1,24 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TextChat : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    public Text textBox;
+    public InputField inputmsg;
+    public InputField username;
+    
+
+    public void DisplayMessage (string message)
     {
-        
+        textBox.text += "\n" + message;
     }
 
-    // Update is called once per frame
-    void Update()
+    public void SendMessage()
     {
+        string message = "MSG" + username.text + ": " + inputmsg.text;
         
     }
+    
 }
