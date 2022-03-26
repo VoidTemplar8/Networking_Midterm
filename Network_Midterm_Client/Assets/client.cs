@@ -10,7 +10,6 @@ using System.Net.Sockets;
 
 public class client : MonoBehaviour
 {
-
     public GameObject myCube;
 
     private static byte[] outBuffer = new byte[512];
@@ -22,20 +21,17 @@ public class client : MonoBehaviour
 
     private Vector3 PreviousPosition;
 
-    public static void RunClient()
+    public static void GetIP(UnityEngine.UI.InputField IPinput)
     {
-        IPAddress ip = IPAddress.Parse("127.0.0.1");//127.0.0.1//192.168.2.144");
+        IPAddress ip = IPAddress.Parse(IPinput.text);//127.0.0.1//192.168.2.144");
         remoteEP = new IPEndPoint(ip, 11111);
 
-        client_socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-
+        client_socket = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
     }
 
     void Start()
     {
         myCube = GameObject.Find("Cube");
-
-        RunClient();
 
         pos = new float[] { myCube.transform.position.x, myCube.transform.position.y, myCube.transform.position.z };
         bytepos = new byte[pos.Length * 4];
