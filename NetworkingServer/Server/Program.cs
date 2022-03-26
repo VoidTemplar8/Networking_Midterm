@@ -35,14 +35,14 @@ class Server
 	static Socket udpServer;
 	static Socket tcpServer;
 
-	int playerCount = 0;
+	static int playerCount = 0;
 
-	List<Player> players = new List<Player>();
+	static List<Player> players = new List<Player>();
 
-	byte[] buffer = new byte[512];
-	int recv = 0;
+	static byte[] buffer = new byte[512];
+	static int recv = 0;
 
-	void StartServer(string ipInput, int maxPlayers) {
+	static void StartServer(string ipInput, int maxPlayers) {
 		ip = IPAddress.Parse(ipInput);
 		tcpServer = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 		IPEndPoint tcpRemote = new IPEndPoint(ip, 11111);
@@ -55,9 +55,9 @@ class Server
 		udpServer.Blocking = false;
 	}
 
-	Socket tempHandler = null;
+	static Socket tempHandler = null;
 
-	bool RunServer() {
+	static bool RunServer() {
 
 		//listen for players
 		try {
@@ -67,9 +67,11 @@ class Server
 
 			//create the join message
 			byte[] message = Encoding.ASCII.GetBytes("JND" + id);
+
+
 			//send a message to all players that a new player connected
 			//also send a message to the player with each current player
-			string otherPlayers = "PLA";
+			string otherPlayers = id.ToString() + "\t";
 			foreach (Player other in players) {
 				other.SendTCP(message, message.Length);
 				otherPlayers += other.id.ToString() + "\t";
@@ -135,11 +137,11 @@ class Server
 		return true;
 	}
 
-	void CloseServer() {
+	static void CloseServer() {
 		tcpServer.Close();
 	}
 
-	void Main() {
+	static void Main() {
 		Console.Write("Input max player count: ");
 		int maxPlayers = int.Parse(Console.ReadLine());
 		Console.Write("Input server IP: ");
