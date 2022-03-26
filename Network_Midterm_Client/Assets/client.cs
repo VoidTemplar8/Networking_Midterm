@@ -8,7 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 
 
-public class client : MonoBehaviour
+public class Client : MonoBehaviour
 {
     public GameObject myCube;
 
@@ -50,11 +50,6 @@ public class client : MonoBehaviour
             client_socket.SendTo(bytepos, remoteEP);
         }
         PreviousPosition = myCube.transform.position;
-
-        if (myCube.transform.position == PreviousPosition)
-        {
-            Debug.Log("Not Sending, No Movements detected.");
-        }
 
     }
 }
