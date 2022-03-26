@@ -10,6 +10,7 @@ using System.Net.Sockets;
 
 public class Client : MonoBehaviour
 {
+	public TextChat chat;
     public Transform myCube;
     public GameObject otherCube;
 
@@ -98,6 +99,7 @@ public class Client : MonoBehaviour
 				//text chat
 				else if (code == "MSG") {
 					//jsut display it
+					chat.DisplayMessage(Encoding.ASCII.GetString(outBuffer, 3, recv - 3));
 				}
 				//a player left
 				else if (code == "LVS") {
@@ -163,5 +165,9 @@ public class Client : MonoBehaviour
 
 		//send leave message
 		tcpSocket.SendTo(Encoding.ASCII.GetBytes("LVS" + id.ToString()), remoteEP);
+	}
+
+	public static void SendTextChat(string message) {
+		tcpSocket.SendTo(Encoding.ASCII.GetBytes("MSG" + message), remoteEP);
 	}
 }

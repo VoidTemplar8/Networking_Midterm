@@ -65,6 +65,9 @@ class Server
 			//if it gets past this a player attempted to connect
 			int id = ++playerCount;
 
+			Console.WriteLine("User at " + ((IPEndPoint)tempHandler.RemoteEndPoint).Address
+					+ " joined with id: " + id.ToString());
+
 			//create the join message
 			byte[] message = Encoding.ASCII.GetBytes("JND" + id);
 
@@ -155,5 +158,6 @@ class Server
 		catch (Exception e) {
 			Console.WriteLine(e.ToString());
 		}
+		Console.ReadKey();
 	}
 }

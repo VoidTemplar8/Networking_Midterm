@@ -15,10 +15,11 @@ public class TextChat : MonoBehaviour
         textBox.text += "\n" + message;
     }
 
-    public void SendMessage()
+    public void SendTextChat()
     {
-        string message = "MSG" + username.text + ": " + inputmsg.text;
-        
+		if (inputmsg.text == "")	return;
+        Client.SendTextChat(username.text + ": " + inputmsg.text);
+		inputmsg.text = "";
     }
     
 }
