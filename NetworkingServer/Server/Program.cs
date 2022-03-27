@@ -64,6 +64,8 @@ class Server
 	static EndPoint remote = new IPEndPoint(IPAddress.Any, 0);
 	static IPEndPoint remoteIP = null;
 
+	static float[] pos = new float[3];
+
 	static bool RunServer() {
 
 		//listen for players
@@ -116,12 +118,19 @@ class Server
 					Console.WriteLine(code);
 
 					if (code == "MSG") {
-						Console.WriteLine("User at " + ((IPEndPoint)player.udpRemoteEP).Address
-								+ "Sent this message: \"" + Encoding.ASCII.GetString(buffer, 3, recv - 3) + "\"");
+						Console.WriteLine("Received message \"" + Encoding.ASCII.GetString(buffer, 3, recv - 3) + "\" from "
+							+ ((IPEndPoint)player.udpRemoteEP).Address);
+						/*Console.WriteLine("User at " + ((IPEndPoint)player.udpRemoteEP).Address
+								+ "Sent this message: \"" + Encoding.ASCII.GetString(buffer, 3, recv - 3) + "\"");*/
 						
 						//if it recieves something, send it to everyone
 						foreach (Player other in players) {
 							other.SendTCP(buffer, recv);
+							if (other != player)
+                            {
+								Console.WriteLine("Sent message \"" + Encoding.ASCII.GetString(buffer, 3, recv - 3) + "\" to "
+									+ ((IPEndPoint)other.udpRemoteEP).Address);
+							}
 						}
 					}
 					//leave server
@@ -156,18 +165,21 @@ class Server
 		try {
 			recv = udpServer.ReceiveFrom(buffer, ref remote);
 
-			if (recv >= 0) {
+			if (recv > 0) {
 				//so we dont need to cast every frame
 				remoteIP = (IPEndPoint)remote;
+				Buffer.BlockCopy(buffer, sizeof(int), pos, 0, sizeof(float) * 3);
+				Console.WriteLine("Received {0},{1},{2} from " + remoteIP.Address, pos[0], pos[1], pos[2]);
+				
 				//do udp sending, ignore the player it came from
 				foreach (Player other in players) {
 					if (remoteIP.Port == other.udpRemoteEP.Port &&
 						remoteIP.Address.GetHashCode() == other.udpRemoteEP.Address.GetHashCode()) {
 						//this player moved
-						Console.WriteLine("user " + other.id + " moved, sent change to all other users");
 						continue;
 					}
 					other.SendUDP(buffer, recv);
+					Console.WriteLine("Sent {0},{1},{2} to " + other.udpRemoteEP.Address, pos[0], pos[1], pos[2]);
 				}
 				remoteIP = null;
 			}
@@ -193,13 +205,11 @@ class Server
 	}
 
 	static void Main() {
-		Console.Write("Input max player count: ");
-		int maxPlayers = int.Parse(Console.ReadLine());
 		Console.Write("Input server IP: ");
 		string ip = Console.ReadLine();
 
 		try {
-			StartServer(ip, maxPlayers);
+			StartServer(ip, 3);
 			while (RunServer()) ;
 			CloseServer();
 		}
