@@ -120,6 +120,8 @@ public class Client : MonoBehaviour
 				if (code == "JND") {
 					//get their id
 					CreateNewPlayer(int.Parse(Encoding.ASCII.GetString(outBuffer, 3, recv - 3)));
+					//send our position through udp so they receive it (if it's not received, oh well)
+					previousPosition = Vector3.zero;
 				}
 				//text chat
 				else if (code == "MSG") {

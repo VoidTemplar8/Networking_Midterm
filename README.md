@@ -11,10 +11,14 @@ Wait for users to join
 # Client Instructions:
 Run NetworkMidterm.exe
 Input IP Address of the server
-Click join button
-wasd to move 
-press enter in the text chat in the bottom left to send message
-display name of user is on the top right
-Number above the cubes represants their ids
+Click join button after
+WASD to move 
+Press enter in the text chat in the bottom left to send messages
+Display name when sending messages is in the top right
+Number above the cubes represents their ids
 
-have fun marking. 
+Notes:
+Supports any number of clients (probably)
+A client can disconnect by pressing the leave button or closing the application
+
+Have fun marking. 
