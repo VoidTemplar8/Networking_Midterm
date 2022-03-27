@@ -170,15 +170,19 @@ public class Client : MonoBehaviour
 	List<Transform> otherPlayers =  new List<Transform>();
 
 	void CreateNewPlayer(int playerId) {
+		chat.DisplayMessage("User with id " + playerId + " joined");
 		//could cehck if the id exists already, but whatevs
+		int index = otherPlayerIds.Count;
 		otherPlayerIds.Add(playerId);
 		otherPlayers.Add(Instantiate(otherCube).transform);
+		otherPlayers[index].GetComponentInChildren<TextMesh>().text = playerId.ToString();
 	}
 
 	void RemovePlayer(int playerId) {
 		//see if it exists, (it really should)
 		int index = otherPlayerIds.IndexOf(playerId);
 		if (index >= 0) {
+			chat.DisplayMessage("User with id " + playerId + " left");
 			otherPlayerIds.RemoveAt(index);
 			Destroy(otherPlayers[index].gameObject);
 			otherPlayers.RemoveAt(index);

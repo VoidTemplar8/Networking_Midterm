@@ -115,11 +115,10 @@ class Server
 				recv = player.tcpSock.Receive(buffer);
 				if (recv >= 3) {
 					string code = Encoding.ASCII.GetString(buffer, 0, 3);
-					Console.WriteLine(code);
 
 					if (code == "MSG") {
 						Console.WriteLine("Received message \"" + Encoding.ASCII.GetString(buffer, 3, recv - 3) + "\" from "
-							+ ((IPEndPoint)player.udpRemoteEP).Address);
+							+ ((IPEndPoint)player.udpRemoteEP).Address + " with id " + player.id.ToString());
 						/*Console.WriteLine("User at " + ((IPEndPoint)player.udpRemoteEP).Address
 								+ "Sent this message: \"" + Encoding.ASCII.GetString(buffer, 3, recv - 3) + "\"");*/
 						
@@ -129,14 +128,14 @@ class Server
 							if (other != player)
                             {
 								Console.WriteLine("Sent message \"" + Encoding.ASCII.GetString(buffer, 3, recv - 3) + "\" to "
-									+ ((IPEndPoint)other.udpRemoteEP).Address);
+									+ ((IPEndPoint)other.udpRemoteEP).Address + " with id " + other.id.ToString());
 							}
 						}
 					}
 					//leave server
 					else if (code == "LVS") {
 						Console.WriteLine("User at " + ((IPEndPoint)player.udpRemoteEP).Address
-								+ " with id: " + player.id.ToString() + "left the app, notifying all other users");
+								+ " with id: " + player.id.ToString() + " left the app, notifying all other users");
 
 						players.RemoveAt(i);
 						//send it to everyone, id should be attached
@@ -176,10 +175,11 @@ class Server
 					if (remoteIP.Port == other.udpRemoteEP.Port &&
 						remoteIP.Address.GetHashCode() == other.udpRemoteEP.Address.GetHashCode()) {
 						//this player moved
+						Console.WriteLine("Position was from user with id: " + other.id.ToString());
 						continue;
 					}
 					other.SendUDP(buffer, recv);
-					Console.WriteLine("Sent {0},{1},{2} to " + other.udpRemoteEP.Address, pos[0], pos[1], pos[2]);
+					Console.WriteLine("Sent {0},{1},{2} to " + other.udpRemoteEP.Address + " with id " + other.id.ToString(), pos[0], pos[1], pos[2]);
 				}
 				remoteIP = null;
 			}
